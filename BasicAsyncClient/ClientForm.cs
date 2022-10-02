@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows.Forms;
+using System.Drawing;
 
 namespace BasicAsyncClient
 {
@@ -11,10 +12,17 @@ namespace BasicAsyncClient
     {
         private Socket clientSocket;
         private byte[] buffer;
+        private ShapePackage tempShape;
+
+        Pen red = new Pen(Color.Red);
+        Rectangle rect = new Rectangle(50, 50, 30, 30);
+        SolidBrush fillBlue = new SolidBrush(Color.Blue);
+        int slide = 10;
 
         public ClientForm()
         {
             InitializeComponent();
+            ConnectToServer();
         }
 
         private static void ShowErrorDialog(string message)
@@ -22,24 +30,38 @@ namespace BasicAsyncClient
             MessageBox.Show(message, Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
+        private void ConnectToServer()
+        {
+            try
+            {
+                clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                // Connect to the specified host.
+                var endPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 3333);
+                clientSocket.BeginConnect(endPoint, ConnectCallback, null);
+            }
+            catch (SocketException ex)
+            {
+                ShowErrorDialog(ex.Message);
+            }
+            catch (ObjectDisposedException ex)
+            {
+                ShowErrorDialog(ex.Message);
+            }
+        }
+
         private void ReceiveCallback(IAsyncResult AR)
         {
             try
             {
                 int received = clientSocket.EndReceive(AR);
+                tempShape = new ShapePackage(buffer);
+                ApplyShapeSpecification(tempShape);
+                Invalidate();
 
                 if (received == 0)
                 {
                     return;
                 }
-
-
-                string message = Encoding.ASCII.GetString(buffer);
-
-                Invoke((Action) delegate
-                {
-                    Text = "Server says: " + message;
-                });
 
                 // Start receiving data again.
                 clientSocket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, ReceiveCallback, null);
@@ -60,9 +82,7 @@ namespace BasicAsyncClient
             try
             {
                 clientSocket.EndConnect(AR);
-                UpdateControlStates(true);
                 buffer = new byte[clientSocket.ReceiveBufferSize];
-                clientSocket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, ReceiveCallback, null);
             }
             catch (SocketException ex)
             {
@@ -90,57 +110,25 @@ namespace BasicAsyncClient
             }
         }
 
-        /// <summary>
-        /// A thread safe way to enable the send button.
-        /// </summary>
-        private void UpdateControlStates(bool toggle)
+        private void timer1_Tick(object sender, EventArgs e)
         {
-            Invoke((Action)delegate
-            {
-                buttonSend.Enabled = toggle;
-                buttonConnect.Enabled = !toggle;
-                labelIP.Visible = textBoxAddress.Visible = !toggle;
-            });
+            // Update rect position here
         }
 
-        private void buttonSend_Click(object sender, EventArgs e)
+        private void Form1_Paint(object sender, PaintEventArgs e)
         {
-            try
-            {
-                // Serialize the textBoxes text before sending.
-                PersonPackage person = new PersonPackage(checkBoxMale.Checked, (ushort)numberBoxAge.Value, textBoxEmployee.Text);
-                byte[] buffer = person.ToByteArray();
-                clientSocket.BeginSend(buffer, 0, buffer.Length, SocketFlags.None, SendCallback, null);
-            }
-            catch (SocketException ex)
-            {
-                ShowErrorDialog(ex.Message);
-                UpdateControlStates(false);
-            }
-            catch (ObjectDisposedException ex)
-            {
-                ShowErrorDialog(ex.Message);
-                UpdateControlStates(false);
-            }
-        }
+            Graphics g = e.Graphics;
 
-        private void buttonConnect_Click(object sender, EventArgs e)
+            g.DrawRectangle(red, rect);
+            g.FillRectangle(fillBlue, rect);
+        }
+        
+        private void ApplyShapeSpecification(ShapePackage shape)
         {
-            try
-            {
-                clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                // Connect to the specified host.
-                var endPoint = new IPEndPoint(IPAddress.Parse(textBoxAddress.Text), 3333);
-                clientSocket.BeginConnect(endPoint, ConnectCallback, null);
-            }
-            catch (SocketException ex)
-            {
-                ShowErrorDialog(ex.Message);
-            }
-            catch (ObjectDisposedException ex)
-            {
-                ShowErrorDialog(ex.Message);
-            }
+            rect.X = shape.X;
+            rect.Y = shape.Y;
+            rect.Width = shape.Width;
+            rect.Height = shape.Height;
         }
     }
 }

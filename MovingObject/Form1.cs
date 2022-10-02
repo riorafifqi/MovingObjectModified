@@ -27,6 +27,7 @@ namespace MovingObject
 
         private void timer1_Tick(object sender, EventArgs e)
         {
+            // Update rect position here
             back();
 
             rect.X += slide;

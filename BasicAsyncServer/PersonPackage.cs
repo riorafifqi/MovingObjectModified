@@ -18,7 +18,7 @@ namespace BasicAsyncServer
             Name = name;
         }
 
-        public PersonPackage(byte[] data)
+        public PersonPackage(byte[] data)   // Deserialize using constructor
         {
             IsMale = BitConverter.ToBoolean(data, 0);
             Age = BitConverter.ToUInt16(data, 1);

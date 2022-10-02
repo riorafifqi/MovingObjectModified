@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows.Forms;
+using System.Drawing;
 
 namespace BasicAsyncServer
 {
@@ -13,10 +14,17 @@ namespace BasicAsyncServer
         private List<Socket> clientSockets = new List<Socket>();        
         private byte[] buffer;
 
+        Pen red = new Pen(Color.Red);
+        Rectangle rect = new Rectangle(20, 20, 30, 30);
+        SolidBrush fillBlue = new SolidBrush(Color.Blue);
+        int slide = 10;
+
         public ServerForm()
         {
             InitializeComponent();
             StartServer();
+            timer1.Interval = 50;
+            timer1.Enabled = true;
         }
 
         private static void ShowErrorDialog(string message)
@@ -59,10 +67,9 @@ namespace BasicAsyncServer
                 buffer = new byte[handler.ReceiveBufferSize];
 
                 // Send a message to the newly connected client.
-                var sendData = Encoding.ASCII.GetBytes("Hello");
-                handler.BeginSend(sendData, 0, sendData.Length, SocketFlags.None, SendCallback, handler);
-                // Listen for client data.
-                handler.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, ReceiveCallback, handler);
+                ShapePackage shape = new ShapePackage(20, 20, 30, 30);
+                byte[] shapeBuffer = shape.ToByteArray();
+                handler.BeginSend(shapeBuffer, 0, shapeBuffer.Length, SocketFlags.None, SendCallback, null);
                 // Continue listening for clients.
                 serverSocket.BeginAccept(AcceptCallback, null);
             }
@@ -76,12 +83,13 @@ namespace BasicAsyncServer
             }
         }
 
-        private void SendCallback(IAsyncResult AR)
+        private void SendCallback(IAsyncResult AR)      // Send package here
         {
             try
             {
                 Socket current = (Socket)AR.AsyncState;
                 current.EndSend(AR);
+
                 //clientSocket.EndSend(AR);
             }
             catch (SocketException ex)
@@ -103,19 +111,6 @@ namespace BasicAsyncServer
                 Socket current = (Socket)AR.AsyncState;
                 int received = current.EndReceive(AR);
                 //int received = clientSocket.EndReceive(AR);
-
-                if (received == 0)
-                {
-                    return;
-                }
-
-                // The received data is deserialized in the PersonPackage ctor.
-                PersonPackage person = new PersonPackage(buffer);
-                SubmitPersonToDataGrid(person);
-
-                // Start receiving data again.
-                //clientSocket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, ReceiveCallback, null);
-                current.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, ReceiveCallback, current);
             }
             // Avoid Pokemon exception handling in cases like these.
             catch (SocketException ex)
@@ -128,15 +123,38 @@ namespace BasicAsyncServer
             }
         }
 
-        /// <summary>
-        /// Provides a thread safe way to add a row to the data grid.
-        /// </summary>
-        private void SubmitPersonToDataGrid(PersonPackage person)
+        private void timer1_Tick(object sender, EventArgs e)
         {
-            Invoke((Action)delegate
-            {
-                dataGridView.Rows.Add(person.Name, person.Age, person.IsMale);
-            });
+            // Update rect position here
+            back();
+
+            rect.X += slide;
+            Invalidate();
+
+            // Serialize Package
+            ShapePackage shape = new ShapePackage(rect.X, rect.Y, rect.Width, rect.Height);
+            byte[] buffer = shape.ToByteArray();
+
+            // Send Package
+            serverSocket.BeginSend(buffer, 0, buffer.Length, SocketFlags.None, SendCallback, null);
         }
+
+        private void back()
+        {
+            if (rect.X >= this.Width - rect.Width * 2)
+                slide = -10;
+            else
+            if (rect.X <= rect.Width / 2)
+                slide = 10;
+        }
+
+        private void Form1_Paint(object sender, PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+
+            g.DrawRectangle(red, rect);
+            g.FillRectangle(fillBlue, rect);
+        }
+
     }
 }
