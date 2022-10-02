@@ -21,10 +21,8 @@ namespace BasicAsyncServer
 
         public ServerForm()
         {
-            InitializeComponent();
             StartServer();
-            timer1.Interval = 50;
-            timer1.Enabled = true;
+            InitializeComponent();
         }
 
         private static void ShowErrorDialog(string message)
@@ -44,6 +42,7 @@ namespace BasicAsyncServer
             {
                 serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 serverSocket.Bind(new IPEndPoint(IPAddress.Any, 3333));
+
                 serverSocket.Listen(10);
                 serverSocket.BeginAccept(AcceptCallback, null);
             }
@@ -63,13 +62,10 @@ namespace BasicAsyncServer
             {
                 Socket handler = serverSocket.EndAccept(AR);
                 clientSockets.Add(handler);
+                Console.WriteLine(clientSockets.Count);
 
                 buffer = new byte[handler.ReceiveBufferSize];
 
-                // Send a message to the newly connected client.
-                ShapePackage shape = new ShapePackage(20, 20, 30, 30);
-                byte[] shapeBuffer = shape.ToByteArray();
-                handler.BeginSend(shapeBuffer, 0, shapeBuffer.Length, SocketFlags.None, SendCallback, null);
                 // Continue listening for clients.
                 serverSocket.BeginAccept(AcceptCallback, null);
             }
@@ -136,7 +132,13 @@ namespace BasicAsyncServer
             byte[] buffer = shape.ToByteArray();
 
             // Send Package
-            serverSocket.BeginSend(buffer, 0, buffer.Length, SocketFlags.None, SendCallback, null);
+            foreach (var handler in clientSockets)
+            {
+                if (handler.Connected)
+                {
+                    handler.BeginSend(buffer, 0, buffer.Length, SocketFlags.None, SendCallback, handler);
+                }
+            }
         }
 
         private void back()

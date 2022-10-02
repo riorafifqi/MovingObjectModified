@@ -15,14 +15,14 @@ namespace BasicAsyncClient
         private ShapePackage tempShape;
 
         Pen red = new Pen(Color.Red);
-        Rectangle rect = new Rectangle(50, 50, 30, 30);
+        Rectangle rect = new Rectangle(20, 20, 30, 30);
         SolidBrush fillBlue = new SolidBrush(Color.Blue);
         int slide = 10;
 
         public ClientForm()
         {
-            InitializeComponent();
             ConnectToServer();
+            InitializeComponent();
         }
 
         private static void ShowErrorDialog(string message)
@@ -38,6 +38,9 @@ namespace BasicAsyncClient
                 // Connect to the specified host.
                 var endPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 3333);
                 clientSocket.BeginConnect(endPoint, ConnectCallback, null);
+
+                buffer = new byte[clientSocket.ReceiveBufferSize];
+                clientSocket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, ReceiveCallback, null);
             }
             catch (SocketException ex)
             {
@@ -54,14 +57,16 @@ namespace BasicAsyncClient
             try
             {
                 int received = clientSocket.EndReceive(AR);
+                Invalidate();
+
                 tempShape = new ShapePackage(buffer);
                 ApplyShapeSpecification(tempShape);
-                Invalidate();
 
                 if (received == 0)
                 {
                     return;
                 }
+                Console.WriteLine(tempShape.X);
 
                 // Start receiving data again.
                 clientSocket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, ReceiveCallback, null);
@@ -126,9 +131,9 @@ namespace BasicAsyncClient
         private void ApplyShapeSpecification(ShapePackage shape)
         {
             rect.X = shape.X;
-            rect.Y = shape.Y;
-            rect.Width = shape.Width;
-            rect.Height = shape.Height;
+            //rect.Y = shape.Y;
+            //rect.Width = shape.Width;
+            //rect.Height = shape.Height;
         }
     }
 }

@@ -34,8 +34,9 @@
             // 
             // timer1
             // 
-            this.timer1.Interval = 1000;
+            this.timer1.Interval = 50;
             this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
+            this.timer1.Enabled = true;
             // 
             // Form1
             // 
@@ -43,7 +44,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(559, 344);
             this.Name = "Form1";
-            this.Text = "Rio";
+            this.Text = "Rio Server";
             this.Paint += new System.Windows.Forms.PaintEventHandler(this.Form1_Paint);
             this.ResumeLayout(false);
 

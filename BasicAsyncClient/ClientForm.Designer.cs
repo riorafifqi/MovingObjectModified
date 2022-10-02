@@ -47,7 +47,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(559, 344);
             this.Name = "Form1";
-            this.Text = "Rio";
+            this.Text = "Rio Client";
             this.Paint += new System.Windows.Forms.PaintEventHandler(this.Form1_Paint);
             this.ResumeLayout(false);
 
